@@ -1,0 +1,45 @@
+{
+  "name": "pokemonwold",
+  "version": "1.0.0",
+  "private": true,
+  "description": "YouTubeライブ配信チャットのコメントでポケモンWordle本家サイトを操作する",
+  "author": "kojyorinx",
+  "main": "src/desktop.cjs",
+  "scripts": {
+    "start": "electron . --no-sandbox",
+    "test": "node --test test/logic.test.js",
+    "build:exe": "node scripts/build-exe.mjs"
+  },
+  "devDependencies": {
+    "electron": "33.4.11",
+    "electron-builder": "25.1.8"
+  },
+  "build": {
+    "appId": "jp.kojyorinx.pokemonwold",
+    "productName": "pokemonwold",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "public/**/*",
+      "data/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "signAndEditExecutable": false
+    },
+    "portable": {
+      "artifactName": "pokemonwold.exe"
+    }
+  }
+}

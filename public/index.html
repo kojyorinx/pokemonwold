@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ポケモンWordle チャット連携</title>
+    <link rel="stylesheet" href="app.css" />
+  </head>
+  <body>
+    <header class="top">
+      <h1>ポケモンWordle チャット連携</h1>
+      <p>ライブ配信チャットの全角カタカナがポケモン名と一致したとき、本家サイトへ入力します。</p>
+    </header>
+
+    <section class="status-row" aria-live="polite">
+      <div>
+        <span id="youtubeBadge" class="badge">配信チャット</span>
+        <span id="youtubeDetail"></span>
+      </div>
+      <div>
+        <span id="siteBadge" class="badge">本家サイト</span>
+        <span id="siteDetail"></span>
+      </div>
+      <div id="busyLine"></div>
+      <div id="statsLine"></div>
+    </section>
+
+    <form id="settingsForm">
+      <section class="card">
+        <h2>ライブ配信チャット</h2>
+        <label for="apiKey">YouTube Data API キー</label>
+        <input id="apiKey" type="password" autocomplete="off" spellcheck="false" />
+        <label for="videoId">配信の URL または動画 ID</label>
+        <input id="videoId" type="text" placeholder="https://www.youtube.com/watch?v=..." spellcheck="false" />
+        <div class="buttons">
+          <button type="button" id="connectButton">配信チャットに接続</button>
+          <button type="button" id="disconnectButton" class="secondary">切断</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>採用率</h2>
+        <p class="note">通常コメントの初期値は 10% です。スパチャは、金額が達した段階のうち一番高い採用率を使います。</p>
+        <label for="normalRate">通常コメントの採用率（%）</label>
+        <input id="normalRate" type="number" min="0" max="100" step="1" />
+        <div id="tiers"></div>
+        <button type="button" id="addTier" class="secondary">スパチャの段階を追加</button>
+        <label class="check"><input id="logOther" type="checkbox" /> カタカナ以外のコメントもログに残す</label>
+      </section>
+
+      <section class="card">
+        <h2>読み上げ</h2>
+        <label class="check"><input id="ttsEnabled" type="checkbox" /> 採用したコメントを読み上げる</label>
+        <p class="note">Windows では日本語の音声（Haruka や Nanami など）が入っていると、その音声で読みます。</p>
+        <button type="button" id="speakTest" class="secondary">読み上げを試す</button>
+        <p id="speaking" class="speaking" hidden></p>
+      </section>
+
+      <div class="buttons">
+        <button type="submit">設定を保存</button>
+      </div>
+    </form>
+
+    <section class="card">
+      <h2>配信なしで試す</h2>
+      <p class="note">配信をしていなくても、入力したコメントを同じルールで判定し、採用した名前を本家サイトへ送ります。</p>
+      <label for="testAuthor">表示名</label>
+      <input id="testAuthor" type="text" value="テスト視聴者" />
+      <label for="testText">コメント（全角カタカナ）</label>
+      <input id="testText" type="text" placeholder="ピカチュウ" />
+      <label for="testAmount">スパチャ金額（空欄なら通常コメント）</label>
+      <input id="testAmount" type="number" min="0" step="1" placeholder="500" />
+      <label class="check"><input id="testForce" type="checkbox" /> テストでは必ず採用する</label>
+      <div class="buttons">
+        <button type="button" id="testSend">テスト送信</button>
+        <button type="button" id="focusSite" class="secondary">本家サイトを前面へ</button>
+        <button type="button" id="reloadSite" class="secondary">本家サイトを再読み込み</button>
+      </div>
+    </section>
+
+    <section class="card log-card">
+      <h2>ログ</h2>
+      <ol id="log"></ol>
+    </section>
+
+    <script src="app.js"></script>
+  </body>
+</html>
