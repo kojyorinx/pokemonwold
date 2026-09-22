@@ -12,16 +12,24 @@ YouTubeライブのチャットと、ポケモンの名前を当てるWordleを�
 - 配信全体で6回まで。視聴者は1ラウンドにつき1回、配信者とモデレーターは複数回答えられます。
 - 配信者とモデレーターは `!new` で出題し直し、`!open` で正解を開けます。
 
-## Windows 実行ファイル
+## アプリケーション
 
-`dist/pokemonwold.exe` をダブルクリックすると、コンソールにホストトークンが表示され、ブラウザでホスト画面が開きます。OBSブラウザソースは `http://localhost:3000/overlay.html` です。
+`dist/pokemonwold.exe` をダブルクリックすると、ポケモンWordleのウィンドウが開きます。標準ブラウザは起動しません。ホストトークンはウィンドウへ自動入力されます。
+
+配信画面に載せるボードは、ウィンドウに表示されるURLをOBSのブラウザソースへ入れます。プレビューもアプリ内の別ウィンドウです。
 
 トークンや動画IDを固定したいときは、exe と同じフォルダに `.env` を置きます。項目は `.env.example` と同じです。
+
+開発中に同じウィンドウで起動する場合:
+
+```bash
+npm install
+npm start
+```
 
 作り直す場合:
 
 ```bash
-npm install
 npm run build:exe
 ```
 
@@ -32,10 +40,7 @@ cp .env.example .env
 npm start
 ```
 
-- ホスト画面: http://localhost:3000/
-- OBSブラウザソース: http://localhost:3000/overlay.html
-
-`.env` の `HOST_TOKEN` をホスト画面へ入力します。未設定のときは起動ログに表示されたトークンを使います。YouTubeへ接続するAPIキーはホスト画面から渡し、画面の状態表示には残りません。
+YouTubeへ接続するAPIキーはアプリの入力欄から渡し、画面の状態表示には残りません。
 
 ## YouTubeライブチャット
 

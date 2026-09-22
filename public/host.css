@@ -99,6 +99,16 @@ button.ghost {
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
+.url {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #0e141e;
+  word-break: break-all;
+}
+
+.overlay-box { margin-top: 8px; }
+
 .error {
   min-height: 1.2em;
   color: var(--danger);

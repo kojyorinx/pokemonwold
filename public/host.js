@@ -13,6 +13,39 @@ const log = document.querySelector("#log");
 
 tokenInput.value = sessionStorage.getItem("hostToken") || "";
 
+const overlayUrl = document.querySelector("#overlay-url");
+const copyOverlay = document.querySelector("#copy-overlay");
+const previewOverlay = document.querySelector("#preview-overlay");
+
+/**
+ * アプリ内で起動したときはトークンを自動入力し、外部ブラウザは使わない。
+ */
+function setupDesktop() {
+  if (!window.pokemonwold) {
+    previewOverlay.hidden = true;
+    overlayUrl.textContent = `${location.origin}/overlay.html`;
+    copyOverlay.addEventListener("click", async () => {
+      await navigator.clipboard.writeText(overlayUrl.textContent);
+      copyOverlay.textContent = "コピーしました";
+    });
+    return Promise.resolve();
+  }
+
+  copyOverlay.addEventListener("click", async () => {
+    await window.pokemonwold.copyOverlayUrl();
+    copyOverlay.textContent = "コピーしました";
+  });
+  previewOverlay.addEventListener("click", () => {
+    window.pokemonwold.previewOverlay();
+  });
+
+  return Promise.all([window.pokemonwold.hostToken(), window.pokemonwold.overlayUrl()]).then(([token, url]) => {
+    tokenInput.value = token;
+    sessionStorage.setItem("hostToken", token);
+    overlayUrl.textContent = url;
+  });
+}
+
 /**
  * @param {string} path
  * @param {object} [body]
@@ -118,5 +151,7 @@ document.querySelector("#reveal").addEventListener("click", async () => {
   }
 });
 
-refresh();
-setInterval(refresh, 1000);
+setupDesktop().then(() => {
+  refresh();
+  setInterval(refresh, 1000);
+});

@@ -11,7 +11,7 @@
       <section class="card">
         <p class="eyebrow">配信者向け</p>
         <h1>ポケモンWordle</h1>
-        <p class="lead">YouTubeライブのチャットにポケモン名が流れると、オーバーレイの共有ボードが進みます。</p>
+        <p class="lead">YouTubeライブのチャットにポケモン名が流れると、配信画面用の共有ボードが進みます。</p>
         <label>
           ホストトークン
           <input id="token" type="password" autocomplete="off" placeholder="起動ログのトークン" />
@@ -43,10 +43,17 @@
           </label>
           <button type="submit">回答する</button>
         </form>
+        <div class="overlay-box">
+          <p class="note">OBSのブラウザソースには、このURLを入れてください。</p>
+          <p id="overlay-url" class="url">読み込み中</p>
+          <div class="actions">
+            <button id="copy-overlay" type="button" class="ghost">URLをコピー</button>
+            <button id="preview-overlay" type="button" class="ghost">アプリ内でプレビュー</button>
+          </div>
+        </div>
         <div class="actions">
           <button id="new-round" type="button">新しい出題</button>
           <button id="reveal" type="button" class="ghost">答えを見る</button>
-          <a class="link" href="/overlay.html" target="_blank" rel="noreferrer">オーバーレイを開く</a>
         </div>
         <p class="error" id="error"></p>
         <ol id="log"></ol>
