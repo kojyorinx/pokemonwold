@@ -6,7 +6,7 @@ const fs = require("fs");
 const { evaluateComment } = require("./logic");
 const { loadSettings, saveSettings } = require("./settings");
 const { LiveChat, parseVideoId } = require("./youtube");
-const { KEYBOARDS, typePokemonName, siteReady } = require("./site-script");
+const { KEYBOARDS, typePokemonName, siteReady, selectGameMode } = require("./site-script");
 const { speakWindows, speakLine } = require("./tts");
 
 const SITE_URL = "https://wordle.mega-yadoran.jp/";
@@ -93,9 +93,26 @@ async function runOnSite(fn, ...args) {
  * キーボードが出るまで待ってから、ポケモン名を入力する。
  */
 async function typeOnSite(name) {
+  const mode = await applyGameMode({ announce: false });
+  if (!mode || !mode.ok) return mode || { ok: false, reason: "mode" };
+  if (mode.needsStart) return { ok: false, reason: "need-start" };
+  return runOnSite(typePokemonName, name, KEYBOARDS);
+}
+
+/**
+ * 保存されているゲームモードを本家サイトへ反映する。
+ * 入力の待ち行列の中から呼ぶ。ここから再度待ち行列へは入れない。
+ */
+async function applyGameMode({ announce }) {
   const ready = await waitForSite();
   if (!ready) return { ok: false, reason: "not-ready" };
-  return runOnSite(typePokemonName, name, KEYBOARDS);
+  const result = await runOnSite(selectGameMode, settings.gameMode || "today");
+  if (result && result.ok) {
+    const extra = result.needsStart ? "。本家サイトの START を押すと出題が始まります" : "";
+    pushStatus({ site: "ready", siteDetail: `${result.label}を操作できます${extra}` });
+    if (announce) pushLog({ level: "info", message: `${result.label}を表示しています${extra}` });
+  }
+  return result;
 }
 
 /**
@@ -155,6 +172,11 @@ function handleComment({ author, text, amount, amountLabel, force, source }) {
     const typed = await typeOnSite(result.name);
     if (typed && typed.ok) {
       pushLog({ level: "adopt", message: `本家サイトへ「${result.name}」を入力しました` });
+    } else if (typed && typed.reason === "need-start") {
+      pushLog({
+        level: "error",
+        message: `「${result.name}」はエンドレスが始まる前なので入力できません。本家サイトの START を押してください`,
+      });
     } else {
       const reason = typed && typed.reason ? typed.reason : "unknown";
       const detail = typed && typed.detail ? ` ${typed.detail}` : "";
@@ -229,7 +251,7 @@ function createSiteWindow() {
   });
   siteWindow.webContents.on("did-finish-load", () => {
     pushStatus({ site: "loading", siteDetail: "本家サイトを読み込みました" });
-    waitForSite();
+    enqueue(() => applyGameMode({ announce: true }));
   });
   siteWindow.on("closed", () => {
     siteWindow = null;
@@ -309,6 +331,14 @@ function registerIpc() {
   ipcMain.handle("focus-site", () => {
     if (!siteWindow || siteWindow.isDestroyed()) createSiteWindow();
     else siteWindow.focus();
+  });
+
+  ipcMain.handle("set-game-mode", (_event, input) => {
+    settings = saveSettings(settingsFile, input);
+    const label = settings.gameMode === "endless" ? "エンドレス" : "今日のお題";
+    pushLog({ level: "info", message: `${label}へ切り替えています` });
+    enqueue(() => applyGameMode({ announce: true }));
+    return settings;
   });
 
   ipcMain.handle("speak-test", (_event, payload) => {

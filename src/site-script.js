@@ -30,7 +30,16 @@ async function typePokemonName(name, boards) {
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const compact = (value) => String(value || "").replace(/\s+/g, "");
 
-  const keyboardRoot = () => document.querySelector(".keyboard");
+  const shown = (el) => {
+    if (!el) return false;
+    const style = window.getComputedStyle(el);
+    if (style.display === "none" || style.visibility === "hidden") return false;
+    const rect = el.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0;
+  };
+
+  // 今日のお題とエンドレスは同時に存在する。見えているモードだけを操作する。
+  const keyboardRoot = () => [...document.querySelectorAll(".keyboard")].find(shown);
 
   const visibleButtons = () => {
     const root = keyboardRoot();
@@ -51,11 +60,12 @@ async function typePokemonName(name, boards) {
 
   const findBackspace = () => visibleButtons().find((button) => button.querySelector(".mdi-backspace-outline"));
 
-  // 盤面だけを見る。キーボードの使用済み文字は色が付くが、入力結果ではない。
-  const postedText = () =>
-    [...document.querySelectorAll(".words .char--posted")]
-      .map((el) => compact(el.textContent))
-      .join("");
+  // 見えている盤面だけを見る。隠れたモードの文字は混ぜない。
+  const postedText = () => {
+    const board = [...document.querySelectorAll(".words")].find(shown);
+    if (!board) return "";
+    return [...board.querySelectorAll(".char--posted")].map((el) => compact(el.textContent)).join("");
+  };
 
   const layoutOf = (ch) => {
     const has = (rows) => (rows || []).some((row) => row.includes(ch));
@@ -138,13 +148,90 @@ async function typePokemonName(name, boards) {
  * 本家サイトのキーボードが操作できる状態かをページ内で確認する。
  */
 function siteReady() {
-  const root = document.querySelector(".keyboard");
+  const shown = (el) => {
+    if (!el) return false;
+    const style = window.getComputedStyle(el);
+    if (style.display === "none" || style.visibility === "hidden") return false;
+    const rect = el.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0;
+  };
+  const root = [...document.querySelectorAll(".keyboard")].find(shown);
   if (!root) return false;
   return [...root.querySelectorAll("button")].some((button) => String(button.innerText || "").replace(/\s+/g, "") === "ENTER");
+}
+
+/**
+ * 本家サイトの「今日のお題」または「エンドレス」を表示する。
+ * エンドレスが START 待ちのときは needsStart を返す。
+ */
+async function selectGameMode(mode) {
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const compact = (value) => String(value || "").replace(/\s+/g, "");
+  const wanted = mode === "endless" ? "endless" : "today";
+  const label = wanted === "endless" ? "エンドレス" : "今日のお題";
+
+  const findOwner = () => {
+    const root = document.querySelector("#app") && document.querySelector("#app").__vue__;
+    const stack = root ? [root] : [];
+    const seen = new Set();
+    while (stack.length) {
+      const vm = stack.pop();
+      if (!vm || seen.has(vm)) continue;
+      seen.add(vm);
+      if (vm.$data && Object.prototype.hasOwnProperty.call(vm.$data, "tab")) return vm;
+      stack.push(...(vm.$children || []));
+    }
+    return null;
+  };
+
+  try {
+    const owner = findOwner();
+    if (owner) {
+      owner.tab = wanted;
+    } else {
+      const tab = [...document.querySelectorAll(".v-tab")].find((el) => compact(el.textContent) === label);
+      if (!tab) return { ok: false, reason: "no-tab" };
+      tab.click();
+    }
+
+    let active = "";
+    const deadline = Date.now() + 3000;
+    while (Date.now() < deadline) {
+      active = compact((document.querySelector(".v-tab--active") || {}).textContent);
+      if (active === label) break;
+      await sleep(50);
+    }
+    if (active !== label) return { ok: false, reason: "not-switched", detail: active };
+    await sleep(200);
+
+    const shown = (el) => {
+      if (!el) return false;
+      const style = window.getComputedStyle(el);
+      if (style.display === "none" || style.visibility === "hidden") return false;
+      const rect = el.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    };
+    const findStartButton = () =>
+      [...document.querySelectorAll("button")].find((button) => shown(button) && compact(button.innerText) === "ゲーム開始");
+    const startDialogOpen = () =>
+      [...document.querySelectorAll(".v-dialog__content--active")].some((dialog) => compact(dialog.innerText).includes("START"));
+
+    // プレイ前のエンドレスは「ゲーム開始」から出題設定を開く。
+    if (wanted === "endless") {
+      const begin = findStartButton();
+      if (begin) begin.click();
+      await sleep(400);
+    }
+    const needsStart = wanted === "endless" && (startDialogOpen() || !!findStartButton());
+    return { ok: true, mode: wanted, label, needsStart };
+  } catch (error) {
+    return { ok: false, reason: "exception", detail: String((error && error.message) || error) };
+  }
 }
 
 module.exports = {
   KEYBOARDS,
   typePokemonName,
   siteReady,
+  selectGameMode,
 };

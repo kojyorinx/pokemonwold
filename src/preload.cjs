@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld("host", {
   testChat: (payload) => ipcRenderer.invoke("test-chat", payload),
   reloadSite: () => ipcRenderer.invoke("reload-site"),
   focusSite: () => ipcRenderer.invoke("focus-site"),
+  setGameMode: (settings) => ipcRenderer.invoke("set-game-mode", settings),
   speakTest: (payload) => ipcRenderer.invoke("speak-test", payload),
   onLog: (callback) => ipcRenderer.on("log", (_event, row) => callback(row)),
   onStatus: (callback) => ipcRenderer.on("status", (_event, status) => callback(status)),

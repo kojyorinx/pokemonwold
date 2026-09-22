@@ -16,6 +16,7 @@ const DEFAULT_SETTINGS = {
   ],
   ttsEnabled: true,
   logOther: false,
+  gameMode: "today",
 };
 
 /**
@@ -37,6 +38,7 @@ function sanitizeSettings(input) {
     tiers,
     ttsEnabled: src.ttsEnabled !== false,
     logOther: src.logOther === true,
+    gameMode: src.gameMode === "endless" ? "endless" : "today",
   };
 }
 

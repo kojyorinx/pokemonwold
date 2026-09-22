@@ -57,6 +57,12 @@ test("テストの強制採用でも名前の条件は外さない", () => {
   assert.equal(rejected.reason, "not-katakana");
 });
 
+test("ゲームモードは今日のお題かエンドレスだけを保存する", () => {
+  assert.equal(sanitizeSettings({}).gameMode, "today");
+  assert.equal(sanitizeSettings({ gameMode: "endless" }).gameMode, "endless");
+  assert.equal(sanitizeSettings({ gameMode: "challenge" }).gameMode, "today");
+});
+
 test("設定の採用率は0から100に収まる", () => {
   const stored = sanitizeSettings({ normalRate: 140, tiers: [{ minAmount: 10, rate: -5 }, { minAmount: 0, rate: 50 }] });
   assert.equal(stored.normalRate, 100);

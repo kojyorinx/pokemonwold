@@ -13,6 +13,9 @@ function fillSettings(settings) {
   document.getElementById("normalRate").value = settings.normalRate;
   document.getElementById("ttsEnabled").checked = settings.ttsEnabled !== false;
   document.getElementById("logOther").checked = settings.logOther === true;
+  const mode = settings.gameMode === "endless" ? "endless" : "today";
+  const modeInput = document.querySelector(`input[name="gameMode"][value="${mode}"]`);
+  if (modeInput) modeInput.checked = true;
   tiersEl.innerHTML = "";
   (settings.tiers || []).forEach((tier) => addTierRow(tier.minAmount, tier.rate));
 }
@@ -47,6 +50,7 @@ function collectSettings() {
     tiers,
     ttsEnabled: document.getElementById("ttsEnabled").checked,
     logOther: document.getElementById("logOther").checked,
+    gameMode: document.querySelector('input[name="gameMode"]:checked').value,
   };
 }
 
@@ -103,6 +107,12 @@ function speak(payload) {
   if (voice) utterance.voice = voice;
   speechSynthesis.speak(utterance);
 }
+
+document.querySelectorAll('input[name="gameMode"]').forEach((input) => {
+  input.addEventListener("change", () => {
+    if (input.checked) window.host.setGameMode(collectSettings());
+  });
+});
 
 document.getElementById("addTier").addEventListener("click", () => addTierRow(100, 30));
 
