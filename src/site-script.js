@@ -51,9 +51,9 @@ async function typePokemonName(name, boards) {
 
   const findBackspace = () => visibleButtons().find((button) => button.querySelector(".mdi-backspace-outline"));
 
+  // 盤面だけを見る。キーボードの使用済み文字は色が付くが、入力結果ではない。
   const postedText = () =>
-    [...document.querySelectorAll(".char--posted")]
-      .filter((el) => !el.closest(".keyboard"))
+    [...document.querySelectorAll(".words .char--posted")]
       .map((el) => compact(el.textContent))
       .join("");
 
@@ -115,14 +115,14 @@ async function typePokemonName(name, boards) {
     enter.scrollIntoView({ block: "center" });
     enter.click();
 
-    // 文字ごとの色アニメーションが終わってから、盤面に名前が載ったか確認する
-    await sleep(chars.length * 300 + 400);
+    // 色が付くアニメーションのあと、盤面の末尾にその名前が載るまで待つ
+    const deadline = Date.now() + 15000;
     let gained = "";
-    for (let i = 0; i < 25; i += 1) {
+    while (Date.now() < deadline) {
       const after = postedText();
       gained = after.startsWith(before) ? after.slice(before.length) : "";
       if (gained === name) {
-        await sleep(600);
+        await sleep(500);
         return { ok: true };
       }
       await sleep(200);

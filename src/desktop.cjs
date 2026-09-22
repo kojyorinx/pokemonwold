@@ -156,10 +156,11 @@ function handleComment({ author, text, amount, amountLabel, force, source }) {
     if (typed && typed.ok) {
       pushLog({ level: "adopt", message: `本家サイトへ「${result.name}」を入力しました` });
     } else {
-      const detail = typed && typed.detail ? `（${typed.detail}）` : "";
+      const reason = typed && typed.reason ? typed.reason : "unknown";
+      const detail = typed && typed.detail ? ` ${typed.detail}` : "";
       pushLog({
         level: "error",
-        message: `「${result.name}」を本家サイトへ入力できませんでした${detail}`,
+        message: `「${result.name}」を本家サイトへ入力できませんでした（${reason}${detail}）`,
       });
     }
     pushStatus({ busy: false, busyName: "" });
@@ -169,8 +170,10 @@ function handleComment({ author, text, amount, amountLabel, force, source }) {
 
 function createHostWindow() {
   hostWindow = new BrowserWindow({
+    x: 16,
+    y: 24,
     width: 560,
-    height: 920,
+    height: 1040,
     minWidth: 420,
     minHeight: 640,
     title: "ポケモンWordle チャット連携",
@@ -197,8 +200,10 @@ function createSiteWindow() {
     return;
   }
   siteWindow = new BrowserWindow({
-    width: 1100,
-    height: 940,
+    x: 590,
+    y: 24,
+    width: 1280,
+    height: 1100,
     title: "ポケモンWordle",
     backgroundColor: "#ffffff",
     autoHideMenuBar: true,
