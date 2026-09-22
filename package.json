@@ -1,0 +1,14 @@
+{
+  "name": "pokemonwold",
+  "version": "1.0.0",
+  "private": true,
+  "description": "YouTubeライブのチャットとポケモンWordleをつなぐ配信向けツール",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

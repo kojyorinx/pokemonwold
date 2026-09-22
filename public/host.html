@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ポケモンWordle ホスト</title>
+    <link rel="stylesheet" href="/host.css" />
+  </head>
+  <body>
+    <main class="layout">
+      <section class="card">
+        <p class="eyebrow">配信者向け</p>
+        <h1>ポケモンWordle</h1>
+        <p class="lead">YouTubeライブのチャットにポケモン名が流れると、オーバーレイの共有ボードが進みます。</p>
+        <label>
+          ホストトークン
+          <input id="token" type="password" autocomplete="off" placeholder="起動ログのトークン" />
+        </label>
+        <div class="split">
+          <label>
+            動画ID
+            <input id="video-id" placeholder="例: dQw4w9wgxcq" />
+          </label>
+          <label>
+            APIキー
+            <input id="api-key" type="password" autocomplete="off" placeholder="YouTube Data API v3" />
+          </label>
+        </div>
+        <div class="actions">
+          <button id="connect" type="button">チャットに接続</button>
+          <button id="disconnect" type="button" class="ghost">切断</button>
+        </div>
+        <p class="note" id="yt-status">チャット未接続</p>
+      </section>
+
+      <section class="card">
+        <h2>このラウンド</h2>
+        <p id="round-status">読み込み中</p>
+        <form id="guess-form" class="guess-form">
+          <label>
+            テスト回答
+            <input id="guess" placeholder="ピカチュウ または ぴかちゅう" />
+          </label>
+          <button type="submit">回答する</button>
+        </form>
+        <div class="actions">
+          <button id="new-round" type="button">新しい出題</button>
+          <button id="reveal" type="button" class="ghost">答えを見る</button>
+          <a class="link" href="/overlay.html" target="_blank" rel="noreferrer">オーバーレイを開く</a>
+        </div>
+        <p class="error" id="error"></p>
+        <ol id="log"></ol>
+      </section>
+    </main>
+    <script src="/host.js"></script>
+  </body>
+</html>

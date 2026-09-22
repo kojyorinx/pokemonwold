@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ポケモンWordle オーバーレイ</title>
+    <link rel="stylesheet" href="/overlay.css" />
+  </head>
+  <body>
+    <main class="panel" id="panel">
+      <header class="heading">
+        <p class="eyebrow">YouTube Live</p>
+        <h1>ポケモンWordle</h1>
+        <p class="status" id="status">読み込み中</p>
+      </header>
+      <div class="board" id="board" aria-live="polite"></div>
+      <p class="feedback" id="feedback"></p>
+    </main>
+    <script src="/overlay.js"></script>
+  </body>
+</html>
