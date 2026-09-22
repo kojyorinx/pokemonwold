@@ -142,6 +142,15 @@ document.getElementById("testSend").addEventListener("click", () => {
 
 document.getElementById("focusSite").addEventListener("click", () => window.host.focusSite());
 document.getElementById("reloadSite").addEventListener("click", () => window.host.reloadSite());
+document.getElementById("showRanking").addEventListener("click", () => window.host.showRanking());
+document.getElementById("resetRanking").addEventListener("click", () => window.host.resetRanking());
+document.getElementById("previewClear").addEventListener("click", () => {
+  window.host.previewClear({
+    settings: collectSettings(),
+    author: document.getElementById("testAuthor").value,
+    name: document.getElementById("testText").value || "ピカチュウ",
+  });
+});
 
 document.getElementById("speakTest").addEventListener("click", async () => {
   const result = await window.host.speakTest({ settings: collectSettings(), text: "テスト、ピカチュウ" });

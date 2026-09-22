@@ -6,8 +6,9 @@ const fs = require("fs");
 const { evaluateComment } = require("./logic");
 const { loadSettings, saveSettings } = require("./settings");
 const { LiveChat, parseVideoId } = require("./youtube");
-const { KEYBOARDS, typePokemonName, siteReady, selectGameMode } = require("./site-script");
+const { KEYBOARDS, typePokemonName, siteReady, selectGameMode, inspectGameState } = require("./site-script");
 const { speakWindows, speakLine } = require("./tts");
+const { loadRanking, recordClear, resetRanking, rankingView, isNewClear } = require("./ranking");
 
 const SITE_URL = "https://wordle.mega-yadoran.jp/";
 
@@ -16,13 +17,16 @@ app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
 
 let hostWindow = null;
 let siteWindow = null;
+let rankingWindow = null;
 let settings = null;
 let settingsFile = "";
+let rankingFile = "";
 let names = new Set();
 let chat = null;
 let chain = Promise.resolve();
 let log = [];
 let stats = { received: 0, adopted: 0 };
+let ranking = null;
 let status = {
   youtube: "idle",
   youtubeDetail: "ライブ配信チャットは未接続です",
@@ -69,6 +73,19 @@ function pushLog(entry) {
 }
 
 /**
+ * クリア画面と操作画面へ、今日のランキングを送る。
+ */
+function pushRanking(next) {
+  ranking = next;
+  if (hostWindow && !hostWindow.isDestroyed()) {
+    hostWindow.webContents.send("ranking", ranking);
+  }
+  if (rankingWindow && !rankingWindow.isDestroyed()) {
+    rankingWindow.webContents.send("ranking", ranking);
+  }
+}
+
+/**
  * 本家サイトへの入力を1件ずつ順番に行う。
  */
 function enqueue(job) {
@@ -94,9 +111,12 @@ async function runOnSite(fn, ...args) {
  */
 async function typeOnSite(name) {
   const mode = await applyGameMode({ announce: false });
-  if (!mode || !mode.ok) return mode || { ok: false, reason: "mode" };
-  if (mode.needsStart) return { ok: false, reason: "need-start" };
-  return runOnSite(typePokemonName, name, KEYBOARDS);
+  if (!mode || !mode.ok) return { typed: mode || { ok: false, reason: "mode" }, before: null, after: null };
+  if (mode.needsStart) return { typed: { ok: false, reason: "need-start" }, before: null, after: null };
+  const before = await runOnSite(inspectGameState);
+  const typed = await runOnSite(typePokemonName, name, KEYBOARDS);
+  const after = typed && typed.ok ? await runOnSite(inspectGameState) : null;
+  return { typed, before, after };
 }
 
 /**
@@ -169,9 +189,12 @@ function handleComment({ author, text, amount, amountLabel, force, source }) {
   enqueue(async () => {
     pushStatus({ busy: true, busyName: result.name });
     if (settings.ttsEnabled) speakAloud(speakLine(who, result.name));
-    const typed = await typeOnSite(result.name);
+    const { typed, before, after } = await typeOnSite(result.name);
     if (typed && typed.ok) {
       pushLog({ level: "adopt", message: `本家サイトへ「${result.name}」を入力しました` });
+      if (isNewClear(before, after)) {
+        onPuzzleCleared({ author: who, name: result.name, mode: settings.gameMode });
+      }
     } else if (typed && typed.reason === "need-start") {
       pushLog({
         level: "error",
@@ -188,6 +211,21 @@ function handleComment({ author, text, amount, amountLabel, force, source }) {
     pushStatus({ busy: false, busyName: "" });
   });
   return result;
+}
+
+/**
+ * クリアした人を今日のランキングへ足し、クリア画面を前面へ出す。
+ */
+function onPuzzleCleared({ author, name, mode }) {
+  const view = recordClear(rankingFile, { author, name, mode });
+  pushRanking(view);
+  const label = mode === "endless" ? "エンドレス" : "今日のお題";
+  pushLog({
+    level: "adopt",
+    message: `${author}さんが「${name}」で${label}をクリア（今日 ${view.lastWinner.count} 問）`,
+  });
+  speakAloud(`${author}さん、クリア`);
+  showRankingWindow();
 }
 
 function createHostWindow() {
@@ -261,13 +299,56 @@ function createSiteWindow() {
   siteWindow.loadURL(SITE_URL);
 }
 
+/**
+ * クリアした人と今日のランキングを出す配信用ウィンドウを開く。
+ */
+function createRankingWindow() {
+  if (rankingWindow && !rankingWindow.isDestroyed()) {
+    rankingWindow.focus();
+    return;
+  }
+  rankingWindow = new BrowserWindow({
+    x: 1440,
+    y: 24,
+    width: 460,
+    height: 860,
+    minWidth: 360,
+    minHeight: 480,
+    title: "クリア・今日のランキング",
+    backgroundColor: "#1a1210",
+    autoHideMenuBar: true,
+    webPreferences: {
+      preload: path.join(__dirname, "preload.cjs"),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false,
+    },
+  });
+  rankingWindow.loadFile(path.join(__dirname, "..", "public", "ranking.html"));
+  rankingWindow.on("closed", () => {
+    rankingWindow = null;
+  });
+}
+
+function showRankingWindow() {
+  if (!rankingWindow || rankingWindow.isDestroyed()) createRankingWindow();
+  else {
+    if (rankingWindow.isMinimized()) rankingWindow.restore();
+    rankingWindow.show();
+    rankingWindow.focus();
+  }
+}
+
 function registerIpc() {
   ipcMain.handle("get-state", () => ({
     settings,
     log,
     status,
     stats,
+    ranking,
   }));
+
+  ipcMain.handle("get-ranking", () => ranking);
 
   ipcMain.handle("save-settings", (_event, input) => {
     settings = saveSettings(settingsFile, input);
@@ -348,6 +429,28 @@ function registerIpc() {
     speakAloud(String(body.text || "テスト、ピカチュウ").slice(0, 80));
     return { ok: true };
   });
+
+  ipcMain.handle("show-ranking", () => {
+    showRankingWindow();
+    return ranking;
+  });
+
+  ipcMain.handle("reset-ranking", () => {
+    pushRanking(resetRanking(rankingFile));
+    pushLog({ level: "info", message: "今日のランキングをリセットしました" });
+    return ranking;
+  });
+
+  ipcMain.handle("preview-clear", (_event, payload) => {
+    const body = payload || {};
+    settings = saveSettings(settingsFile, body.settings || settings);
+    onPuzzleCleared({
+      author: String(body.author || "テスト視聴者").trim() || "テスト視聴者",
+      name: String(body.name || "ピカチュウ").trim() || "ピカチュウ",
+      mode: settings.gameMode,
+    });
+    return ranking;
+  });
 }
 
 /**
@@ -388,12 +491,15 @@ if (!gotLock) {
 
   app.whenReady().then(() => {
     settingsFile = path.join(configDir(), "settings.json");
+    rankingFile = path.join(configDir(), "ranking.json");
     settings = loadSettings(settingsFile);
+    ranking = rankingView(loadRanking(rankingFile));
     const nameFile = path.join(__dirname, "..", "data", "pokemon-kata.json");
     names = new Set(JSON.parse(fs.readFileSync(nameFile, "utf8")));
     registerIpc();
     createHostWindow();
     createSiteWindow();
+    createRankingWindow();
   });
 }
 

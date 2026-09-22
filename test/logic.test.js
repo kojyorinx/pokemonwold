@@ -116,3 +116,50 @@ test("本家サイトのキーボードで入力できる全角カタカナ名�
     for (const ch of name) assert.ok(keys.has(ch), `${name} の ${ch}`);
   }
 });
+
+const os = require("os");
+const { isNewClear, recordClear, loadRanking, resetRanking, rankingList, tokyoDate } = require("../src/ranking");
+
+test("入力の前後で新しくクリアしたときだけ正解にする", () => {
+  assert.equal(isNewClear({ cleared: false, clearCount: 0 }, { cleared: true, clearCount: 0 }), true);
+  assert.equal(isNewClear({ cleared: false, clearCount: 0 }, { cleared: true, clearCount: 1 }), true);
+  assert.equal(isNewClear({ cleared: true, clearCount: 1 }, { cleared: true, clearCount: 1 }), false);
+  assert.equal(isNewClear({ cleared: true, clearCount: 1 }, { cleared: true, clearCount: 2 }), true);
+  assert.equal(isNewClear({ cleared: false, clearCount: 0 }, { cleared: false, clearCount: 0 }), false);
+});
+
+test("今日の正解数は名前ごとに増え、多い順に並ぶ", () => {
+  const file = path.join(os.tmpdir(), `pokemonwold-ranking-${Date.now()}.json`);
+  const now = Date.parse("2026-09-22T12:00:00+09:00");
+  const first = recordClear(file, { author: "視聴者B", name: "ミュウ", mode: "today" }, now);
+  assert.equal(first.lastWinner.author, "視聴者B");
+  assert.equal(first.lastWinner.count, 1);
+  recordClear(file, { author: "視聴者A", name: "ピカチュウ", mode: "endless" }, now);
+  const third = recordClear(file, { author: "視聴者A", name: "フシギダネ", mode: "endless" }, now);
+  assert.deepEqual(
+    third.ranking.map((row) => [row.rank, row.author, row.clears]),
+    [
+      [1, "視聴者A", 2],
+      [2, "視聴者B", 1],
+    ]
+  );
+  assert.equal(third.lastWinner.author, "視聴者A");
+  assert.equal(third.lastWinner.count, 2);
+  assert.equal(loadRanking(file, now).date, tokyoDate(now));
+  const nextDay = resetRanking(file, Date.parse("2026-09-23T01:00:00+09:00"));
+  assert.equal(nextDay.ranking.length, 0);
+  assert.equal(nextDay.lastWinner, null);
+  fs.unlinkSync(file);
+});
+
+test("日付が変わると今日の正解数は空からになる", () => {
+  const file = path.join(os.tmpdir(), `pokemonwold-ranking-day-${Date.now()}.json`);
+  const day1 = Date.parse("2026-09-22T23:00:00+09:00");
+  recordClear(file, { author: "視聴者A", name: "ミュウ", mode: "today" }, day1);
+  const day2 = Date.parse("2026-09-23T00:30:00+09:00");
+  const loaded = loadRanking(file, day2);
+  assert.equal(loaded.date, "2026-09-23");
+  assert.deepEqual(loaded.scores, {});
+  assert.deepEqual(rankingList({ 視聴者A: 3, 視聴者C: 3, 視聴者B: 1 }).map((row) => row.author), ["視聴者A", "視聴者C", "視聴者B"]);
+  fs.unlinkSync(file);
+});

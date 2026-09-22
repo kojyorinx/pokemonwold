@@ -2,4 +2,5 @@ node_modules/
 dist/*
 !dist/pokemonwold.exe
 settings.json
+ranking.json
 *.log

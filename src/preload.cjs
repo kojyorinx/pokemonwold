@@ -16,7 +16,12 @@ contextBridge.exposeInMainWorld("host", {
   focusSite: () => ipcRenderer.invoke("focus-site"),
   setGameMode: (settings) => ipcRenderer.invoke("set-game-mode", settings),
   speakTest: (payload) => ipcRenderer.invoke("speak-test", payload),
+  showRanking: () => ipcRenderer.invoke("show-ranking"),
+  resetRanking: () => ipcRenderer.invoke("reset-ranking"),
+  previewClear: (payload) => ipcRenderer.invoke("preview-clear", payload),
+  getRanking: () => ipcRenderer.invoke("get-ranking"),
   onLog: (callback) => ipcRenderer.on("log", (_event, row) => callback(row)),
   onStatus: (callback) => ipcRenderer.on("status", (_event, status) => callback(status)),
   onSpeak: (callback) => ipcRenderer.on("speak", (_event, text) => callback(text)),
+  onRanking: (callback) => ipcRenderer.on("ranking", (_event, data) => callback(data)),
 });

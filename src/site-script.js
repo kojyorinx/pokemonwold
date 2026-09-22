@@ -229,9 +229,56 @@ async function selectGameMode(mode) {
   }
 }
 
+/**
+ * 見えているモードのクリア状態を、本家サイトの Vue データから読む。
+ */
+function inspectGameState() {
+  const shown = (el) => {
+    if (!el) return false;
+    const style = window.getComputedStyle(el);
+    if (style.display === "none" || style.visibility === "hidden") return false;
+    const rect = el.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0;
+  };
+
+  const board = [...document.querySelectorAll(".words")].find(shown);
+  const root = document.querySelector("#app") && document.querySelector("#app").__vue__;
+  const stack = root ? [root] : [];
+  const seen = new Set();
+  let vm = null;
+  while (stack.length) {
+    const node = stack.pop();
+    if (!node || seen.has(node)) continue;
+    seen.add(node);
+    if (Array.isArray(node.postedPokemon) && typeof node.cleared === "boolean") {
+      if (board && node.$el && node.$el.contains(board)) {
+        vm = node;
+        break;
+      }
+      if (!vm) vm = node;
+    }
+    stack.push(...(node.$children || []));
+  }
+  if (!vm) {
+    return { ready: false, cleared: false, failed: false, clearCount: 0, lastName: "", lastAllGreen: false };
+  }
+  const last = (vm.postedPokemon && vm.postedPokemon[vm.postedPokemon.length - 1]) || [];
+  const lastName = last.map((cell) => (cell && cell.char) || "").join("");
+  const lastAllGreen = last.length === 5 && last.every((cell) => cell && (cell.color === "green" || cell.color === "orange darken-3"));
+  return {
+    ready: true,
+    cleared: vm.cleared === true || lastAllGreen,
+    failed: vm.failed === true,
+    clearCount: Number(vm.clearCount) || 0,
+    lastName,
+    lastAllGreen,
+  };
+}
+
 module.exports = {
   KEYBOARDS,
   typePokemonName,
   siteReady,
   selectGameMode,
+  inspectGameState,
 };

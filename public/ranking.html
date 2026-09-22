@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>クリア・今日のランキング</title>
+    <link rel="stylesheet" href="ranking.css" />
+  </head>
+  <body>
+    <section class="winner" id="winner">
+      <p class="eyebrow" id="winnerLabel">CLEAR</p>
+      <p class="hint" id="winnerHint">ゲームをクリアした人</p>
+      <h1 id="winnerName">まだクリアしていません</h1>
+      <p class="answer" id="winnerAnswer"></p>
+    </section>
+    <section class="board">
+      <h2>今日のランキング</h2>
+      <p class="date" id="rankingDate"></p>
+      <ol id="ranking"></ol>
+      <p class="empty" id="rankingEmpty">まだ正解はありません</p>
+    </section>
+    <script src="ranking.js"></script>
+  </body>
+</html>

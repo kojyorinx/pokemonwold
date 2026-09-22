@@ -1,0 +1,124 @@
+:root {
+  color-scheme: dark;
+  --bg: #1a1210;
+  --card: #2a1c18;
+  --gold: #f4d35e;
+  --ink: #fff7ea;
+  --muted: #cbbba4;
+  --red: #e53935;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  font-family: "Yu Gothic UI", "Meiryo", "Noto Sans CJK JP", "Droid Sans Fallback", sans-serif;
+  background: radial-gradient(circle at top, #3b221c 0%, var(--bg) 55%);
+  color: var(--ink);
+  padding: 24px 22px 28px;
+}
+
+.winner {
+  background: var(--card);
+  border: 2px solid var(--gold);
+  border-radius: 18px;
+  padding: 22px 18px 20px;
+  text-align: center;
+  min-height: 220px;
+}
+
+.winner.cleared {
+  box-shadow: 0 0 0 4px rgba(244, 211, 94, 0.25);
+}
+
+.eyebrow {
+  margin: 0;
+  letter-spacing: 0.28em;
+  font-weight: 800;
+  color: var(--gold);
+  font-size: 18px;
+}
+
+.hint {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.winner h1 {
+  margin: 14px 0 8px;
+  font-size: 42px;
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.answer {
+  margin: 0;
+  font-size: 20px;
+  color: var(--gold);
+  min-height: 1.4em;
+}
+
+.board {
+  margin-top: 22px;
+}
+
+.board h2 {
+  margin: 0 0 4px;
+  font-size: 20px;
+}
+
+.date {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+#ranking {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+#ranking li {
+  display: grid;
+  grid-template-columns: 3.2em 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background: var(--card);
+  border-radius: 12px;
+}
+
+#ranking .rank {
+  font-weight: 800;
+  color: var(--gold);
+  font-size: 20px;
+}
+
+#ranking .author {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#ranking .clears {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+#ranking li.top { border: 1px solid var(--gold); }
+#ranking li.winner-row { outline: 2px solid var(--red); }
+
+.empty {
+  margin: 8px 0 0;
+  color: var(--muted);
+}
+
+.empty[hidden] { display: none; }
