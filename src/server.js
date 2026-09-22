@@ -13,8 +13,13 @@ import { loadCatalogFromFile } from "./catalog.js";
 import { createSession } from "./session.js";
 import { handleChatMessage, YoutubeLiveChat } from "./youtube.js";
 
-const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const publicDir = path.join(rootDir, "public");
+/**
+ * 開発時にソースツリーから図鑑と画面を読む基準ディレクトリ。
+ * exe では埋め込みデータを渡すので、このパスは使わない。
+ */
+function projectRoot() {
+  return path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+}
 
 const CONTENT_TYPES = new Map([
   [".html", "text/html; charset=utf-8"],
@@ -83,10 +88,10 @@ function sendJson(res, status, body) {
 
 /**
  * アプリ本体を組み立てる。テストからポート0で起動できる。
- * @param {{ hostToken: string, catalog?: ReturnType<import("./catalog.js").loadCatalog>, session?: ReturnType<typeof createSession>, youtube?: YoutubeLiveChat, catalogPath?: string }} options
+ * @param {{ hostToken: string, catalog?: ReturnType<import("./catalog.js").loadCatalog>, session?: ReturnType<typeof createSession>, youtube?: YoutubeLiveChat, catalogPath?: string, files?: Record<string, string> }} options
  */
 export function createApp(options) {
-  const catalog = options.catalog ?? loadCatalogFromFile(options.catalogPath ?? path.join(rootDir, "data", "pokemon-ja.json"));
+  const catalog = options.catalog ?? loadCatalogFromFile(options.catalogPath ?? path.join(projectRoot(), "data", "pokemon-ja.json"));
   const session = options.session ?? createSession({ catalog });
   const youtube = options.youtube ?? new YoutubeLiveChat({
     onMessage(message) {
@@ -161,7 +166,7 @@ export function createApp(options) {
       }
 
       if (req.method === "GET") {
-        await serveStatic(url.pathname, res);
+        await serveStatic(url.pathname, res, options.files);
         return;
       }
 
@@ -176,12 +181,27 @@ export function createApp(options) {
 }
 
 /**
- * public/ のファイルを返す。ディレクトリ脱出は拒否する。
+ * public/ のファイル、または exe に埋め込んだファイルを返す。
+ * 埋め込み時は登録されたパスだけを返し、ディレクトリ脱出は拒否する。
  * @param {string} pathname
  * @param {import("node:http").ServerResponse} res
+ * @param {Record<string, string> | undefined} files
  */
-async function serveStatic(pathname, res) {
+async function serveStatic(pathname, res, files) {
   const requested = pathname === "/" ? "/host.html" : pathname;
+  if (files) {
+    const body = Object.hasOwn(files, requested) ? files[requested] : undefined;
+    if (body === undefined) {
+      sendJson(res, 404, { error: "見つかりません" });
+      return;
+    }
+    const type = CONTENT_TYPES.get(path.extname(requested)) ?? "application/octet-stream";
+    res.writeHead(200, { "content-type": type, "cache-control": "no-store" });
+    res.end(body);
+    return;
+  }
+
+  const publicDir = path.join(projectRoot(), "public");
   const filePath = path.normalize(path.join(publicDir, requested));
   const insidePublic = filePath === publicDir || filePath.startsWith(`${publicDir}${path.sep}`);
   if (!insidePublic) {

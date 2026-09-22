@@ -73,3 +73,30 @@ test("ホスト操作はトークンが必要で、プレイ中の正解は漏�
     await new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
   }
 });
+
+test("埋め込みファイルは登録された画面だけを返す", async () => {
+  const catalog = loadCatalog([{ id: 25, name: "ピカチュウ" }]);
+  const session = createSession({ catalog, random: () => 0 });
+  const { server } = createApp({
+    hostToken: "secret-token",
+    catalog,
+    session,
+    files: {
+      "/host.html": "<!DOCTYPE html><title>埋め込みホスト</title>",
+      "/overlay.html": "<!DOCTYPE html><title>埋め込みオーバーレイ</title>",
+    },
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+
+  try {
+    const host = await request(server, "GET", "/");
+    const overlay = await request(server, "GET", "/overlay.html");
+    const missing = await request(server, "GET", "/../package.json");
+    assert.equal(host.status, 200);
+    assert.match(host.payload, /埋め込みホスト/);
+    assert.match(overlay.payload, /埋め込みオーバーレイ/);
+    assert.equal(missing.status, 404);
+  } finally {
+    await new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+  }
+});

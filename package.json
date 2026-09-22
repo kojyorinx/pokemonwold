@@ -6,9 +6,14 @@
   "type": "module",
   "scripts": {
     "start": "node src/index.js",
-    "test": "node --test"
+    "test": "node --test",
+    "build:exe": "node scripts/build-exe.mjs"
   },
   "engines": {
     "node": ">=20"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.10",
+    "postject": "^1.0.0-alpha.6"
   }
 }

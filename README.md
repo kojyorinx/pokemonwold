@@ -12,6 +12,19 @@ YouTubeライブのチャットと、ポケモンの名前を当てるWordleを�
 - 配信全体で6回まで。視聴者は1ラウンドにつき1回、配信者とモデレーターは複数回答えられます。
 - 配信者とモデレーターは `!new` で出題し直し、`!open` で正解を開けます。
 
+## Windows 実行ファイル
+
+`dist/pokemonwold.exe` をダブルクリックすると、コンソールにホストトークンが表示され、ブラウザでホスト画面が開きます。OBSブラウザソースは `http://localhost:3000/overlay.html` です。
+
+トークンや動画IDを固定したいときは、exe と同じフォルダに `.env` を置きます。項目は `.env.example` と同じです。
+
+作り直す場合:
+
+```bash
+npm install
+npm run build:exe
+```
+
 ## 起動
 
 ```bash
