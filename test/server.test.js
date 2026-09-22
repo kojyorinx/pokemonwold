@@ -171,3 +171,36 @@ test("テストモードは配信なしで視聴者チャットを再現する",
     await new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
   }
 });
+
+test("全てリセットは盤面と履歴とテストモードを消す", async () => {
+  const catalog = loadCatalog([
+    { id: 25, name: "ピカチュウ" },
+    { id: 26, name: "ライチュウ" },
+  ]);
+  const session = createSession({ catalog, random: () => 0 });
+  const { server } = createApp({ hostToken: "secret-token", catalog, session });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+
+  try {
+    const denied = await request(server, "POST", "/api/reset");
+    assert.equal(denied.status, 401);
+
+    await request(server, "POST", "/api/test/start", { token: "secret-token" });
+    const guessed = await request(server, "POST", "/api/test/chat", {
+      token: "secret-token",
+      body: { author: "テスト視聴者", text: "ライチュウ" },
+    });
+    assert.equal(guessed.payload.rows.length, 1);
+
+    const reset = await request(server, "POST", "/api/reset", { token: "secret-token" });
+    assert.equal(reset.status, 200);
+    assert.equal(reset.payload.rows.length, 0);
+    assert.equal(reset.payload.phase, "playing");
+    assert.equal(reset.payload.answer, null);
+    assert.equal(reset.payload.testMode.enabled, false);
+    assert.equal(reset.payload.log.length, 1);
+    assert.match(reset.payload.log[0].text, /全てリセットしました/);
+  } finally {
+    await new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+  }
+});

@@ -185,6 +185,19 @@ document.querySelector("#new-round").addEventListener("click", async () => {
   }
 });
 
+document.querySelector("#reset-all").addEventListener("click", async () => {
+  errorBox.textContent = "";
+  guessInput.value = "";
+  document.querySelector("#chat-text").value = "";
+  document.querySelector("#chat-mod").checked = false;
+  testNote.textContent = "開始すると、名前だけの発言が回答になります。";
+  try {
+    render(await post("/api/reset"));
+  } catch (error) {
+    showError(error);
+  }
+});
+
 document.querySelector("#reveal").addEventListener("click", async () => {
   errorBox.textContent = "";
   try {

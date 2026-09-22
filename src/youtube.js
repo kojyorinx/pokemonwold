@@ -198,9 +198,13 @@ export function handleChatMessage(session, message) {
     if (!message.isOwner && !message.isModerator) {
       return { handled: true, ignored: true };
     }
-    if (command === "new" || command === "reset") {
+    if (command === "new") {
       session.startRound();
       return { handled: true, command: "new" };
+    }
+    if (command === "reset") {
+      session.resetAll();
+      return { handled: true, command: "reset" };
     }
     if (command === "open" || command === "answer") {
       session.reveal();

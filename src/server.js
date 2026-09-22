@@ -155,6 +155,15 @@ export function createApp(options) {
         return;
       }
 
+      if (req.method === "POST" && url.pathname === "/api/reset") {
+        // 盤面だけでなく、配信接続とテストモードも初期状態へ戻す
+        youtube.stop();
+        testMode = false;
+        session.resetAll();
+        sendJson(res, 200, snapshot());
+        return;
+      }
+
       if (req.method === "POST" && url.pathname === "/api/test/start") {
         youtube.stop();
         testMode = true;
@@ -232,6 +241,7 @@ export function createApp(options) {
  */
 function describeTestChat(outcome) {
   if (outcome.command === "new") return "出題を切り替えました";
+  if (outcome.command === "reset") return "盤面と履歴をリセットしました";
   if (outcome.command === "open") return "正解を開きました";
   if (outcome.ignored) return "モデレーター以外はそのコマンドを使えません";
   if (outcome.result?.ok) return "チャットを盤面に反映しました";

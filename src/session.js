@@ -37,6 +37,21 @@ export function createSession(options) {
   }
 
   /**
+   * 回答・履歴・表示中の正解を消し、新しい出題から始める。
+   */
+  function resetAll() {
+    log.length = 0;
+    lastEvent = null;
+    const entry = options.catalog.pick(random, round?.id ?? null);
+    round = createRound(entry, maxGuesses);
+    pushEvent({
+      type: "reset",
+      text: `全てリセットしました。${round.length}文字のポケモンです`,
+    });
+    return publicState();
+  }
+
+  /**
    * 回答を処理する。図鑑に無い発言は配信チャットを汚さないよう silent にする。
    * @param {string} rawName
    * @param {{ author?: string, authorId?: string, privileged?: boolean }} actor
@@ -119,5 +134,5 @@ export function createSession(options) {
 
   startRound();
 
-  return { startRound, guess, reveal, publicState };
+  return { startRound, resetAll, guess, reveal, publicState };
 }
