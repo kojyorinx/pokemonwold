@@ -100,3 +100,74 @@ test("埋め込みファイルは登録された画面だけを返す", async ()
     await new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
   }
 });
+
+test("テストモードは配信なしで視聴者チャットを再現する", async () => {
+  const catalog = loadCatalog([
+    { id: 25, name: "ピカチュウ" },
+    { id: 4, name: "ヒトカゲ" },
+    { id: 26, name: "ライチュウ" },
+  ]);
+  const session = createSession({ catalog, random: () => 0 });
+  const { server } = createApp({ hostToken: "secret-token", catalog, session });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+
+  try {
+    const denied = await request(server, "POST", "/api/test/start");
+    assert.equal(denied.status, 401);
+
+    const started = await request(server, "POST", "/api/test/start", { token: "secret-token" });
+    assert.equal(started.status, 200);
+    assert.equal(started.payload.testMode.enabled, true);
+    assert.equal(started.payload.length, 5);
+
+    await request(server, "POST", "/api/test/stop", { token: "secret-token" });
+    const blocked = await request(server, "POST", "/api/test/chat", {
+      token: "secret-token",
+      body: { author: "テスト視聴者", text: "ライチュウ" },
+    });
+    assert.equal(blocked.status, 400);
+
+    await request(server, "POST", "/api/test/start", { token: "secret-token" });
+    const wrongLength = await request(server, "POST", "/api/test/chat", {
+      token: "secret-token",
+      body: { author: "テスト視聴者", text: "ヒトカゲ" },
+    });
+    assert.equal(wrongLength.payload.rows.length, 0);
+    assert.match(wrongLength.payload.notice, /文字数/);
+
+    const ignored = await request(server, "POST", "/api/test/chat", {
+      token: "secret-token",
+      body: { author: "テスト視聴者", text: "こんにちは" },
+    });
+    assert.equal(ignored.payload.notice, "ポケモンの名前ではありません");
+    assert.equal(ignored.payload.rows.length, 0);
+
+    const guess = await request(server, "POST", "/api/test/chat", {
+      token: "secret-token",
+      body: { author: "テスト視聴者", text: "らいちゅう" },
+    });
+    assert.equal(guess.payload.rows.length, 1);
+    assert.equal(guess.payload.phase, "playing");
+
+    const second = await request(server, "POST", "/api/test/chat", {
+      token: "secret-token",
+      body: { author: "テスト視聴者", text: "ピカチュウ" },
+    });
+    assert.match(second.payload.notice, /1人1回/);
+
+    const viewerOnly = await request(server, "POST", "/api/test/chat", {
+      token: "secret-token",
+      body: { author: "ただの視聴者", text: "!new" },
+    });
+    assert.equal(viewerOnly.payload.length, 5);
+
+    const reset = await request(server, "POST", "/api/test/chat", {
+      token: "secret-token",
+      body: { author: "モデレーター", text: "!new", moderator: true },
+    });
+    assert.equal(reset.payload.length, 4);
+    assert.equal(reset.payload.notice, "出題を切り替えました");
+  } finally {
+    await new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+  }
+});

@@ -98,12 +98,27 @@ export function createApp(options) {
       handleChatMessage(session, message);
     },
   });
+  // 配信していないときの疑似チャット。YouTube接続とは同時に使わない。
+  let testMode = false;
+
+  /**
+   * 画面へ返す状態。プレイ中の正解はセッション側で隠している。
+   * @param {Record<string, unknown>} [extra]
+   */
+  function snapshot(extra = {}) {
+    return {
+      ...session.publicState(),
+      youtube: youtube.status(),
+      testMode: { enabled: testMode },
+      ...extra,
+    };
+  }
 
   const server = createServer(async (req, res) => {
     try {
       const url = new URL(req.url ?? "/", "http://localhost");
       if (req.method === "GET" && url.pathname === "/api/state") {
-        sendJson(res, 200, { ...session.publicState(), youtube: youtube.status() });
+        sendJson(res, 200, snapshot());
         return;
       }
 
@@ -121,8 +136,7 @@ export function createApp(options) {
           privileged: true,
         });
         sendJson(res, result.ok ? 200 : 400, {
-          ...result.state,
-          youtube: youtube.status(),
+          ...snapshot(),
           error: result.ok ? null : result.message,
           code: result.ok ? null : result.code,
         });
@@ -130,12 +144,45 @@ export function createApp(options) {
       }
 
       if (req.method === "POST" && url.pathname === "/api/round") {
-        sendJson(res, 200, { ...session.startRound(), youtube: youtube.status() });
+        session.startRound();
+        sendJson(res, 200, snapshot());
         return;
       }
 
       if (req.method === "POST" && url.pathname === "/api/reveal") {
-        sendJson(res, 200, { ...session.reveal(), youtube: youtube.status() });
+        session.reveal();
+        sendJson(res, 200, snapshot());
+        return;
+      }
+
+      if (req.method === "POST" && url.pathname === "/api/test/start") {
+        youtube.stop();
+        testMode = true;
+        sendJson(res, 200, snapshot());
+        return;
+      }
+
+      if (req.method === "POST" && url.pathname === "/api/test/stop") {
+        testMode = false;
+        sendJson(res, 200, snapshot());
+        return;
+      }
+
+      if (req.method === "POST" && url.pathname === "/api/test/chat") {
+        const body = await readJson(req);
+        if (!testMode) {
+          sendJson(res, 400, { ...snapshot(), error: "テストモードを開始してください" });
+          return;
+        }
+        const author = String(body.author || "テスト視聴者").trim() || "テスト視聴者";
+        const outcome = handleChatMessage(session, {
+          text: String(body.text || ""),
+          author,
+          authorId: `test:${author}`,
+          isOwner: Boolean(body.moderator),
+          isModerator: Boolean(body.moderator),
+        });
+        sendJson(res, 200, { ...snapshot(), error: null, notice: describeTestChat(outcome) });
         return;
       }
 
@@ -144,15 +191,14 @@ export function createApp(options) {
         try {
           await youtube.start({ apiKey: body.apiKey, videoId: body.videoId });
           const status = youtube.status();
+          if (status.running) testMode = false;
           sendJson(res, status.running ? 200 : 400, {
-            ...session.publicState(),
-            youtube: status,
+            ...snapshot(),
             error: status.error || null,
           });
         } catch (error) {
           sendJson(res, 400, {
-            ...session.publicState(),
-            youtube: youtube.status(),
+            ...snapshot(),
             error: error instanceof Error ? error.message : "接続に失敗しました",
           });
         }
@@ -161,7 +207,7 @@ export function createApp(options) {
 
       if (req.method === "POST" && url.pathname === "/api/youtube/stop") {
         youtube.stop();
-        sendJson(res, 200, { ...session.publicState(), youtube: youtube.status() });
+        sendJson(res, 200, snapshot());
         return;
       }
 
@@ -178,6 +224,19 @@ export function createApp(options) {
   });
 
   return { server, session, youtube };
+}
+
+/**
+ * 疑似チャットの結果をホスト画面の一言に変える。
+ * @param {{ handled?: boolean, ignored?: boolean, command?: string, result?: { ok?: boolean, message?: string } }} outcome
+ */
+function describeTestChat(outcome) {
+  if (outcome.command === "new") return "出題を切り替えました";
+  if (outcome.command === "open") return "正解を開きました";
+  if (outcome.ignored) return "モデレーター以外はそのコマンドを使えません";
+  if (outcome.result?.ok) return "チャットを盤面に反映しました";
+  if (outcome.result?.message) return outcome.result.message;
+  return "ポケモン名ではないので無視しました";
 }
 
 /**

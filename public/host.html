@@ -33,6 +33,32 @@
         <p class="note" id="yt-status">チャット未接続</p>
       </section>
 
+      <section class="card" id="test-mode">
+        <p class="eyebrow">配信なし</p>
+        <h2>テストモード</h2>
+        <p class="lead">YouTubeで配信していなくても、視聴者のチャットと同じルールで盤面を進められます。</p>
+        <div class="actions">
+          <button id="test-start" type="button">テストモードを開始</button>
+          <button id="test-stop" type="button" class="ghost">終了</button>
+        </div>
+        <form id="chat-form" class="guess-form">
+          <label>
+            視聴者名
+            <input id="chat-author" value="テスト視聴者" />
+          </label>
+          <label>
+            チャット
+            <input id="chat-text" placeholder="ピカチュウ、ぴかちゅう、!new" />
+          </label>
+          <button type="submit">チャットとして送る</button>
+        </form>
+        <label class="check">
+          <input id="chat-mod" type="checkbox" />
+          配信者・モデレーターとして送る（!new と !open が使えます）
+        </label>
+        <p class="note" id="test-note">開始すると、名前だけの発言が回答になります。</p>
+      </section>
+
       <section class="card">
         <h2>このラウンド</h2>
         <p id="round-status">読み込み中</p>

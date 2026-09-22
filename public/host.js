@@ -10,6 +10,8 @@ const errorBox = document.querySelector("#error");
 const roundStatus = document.querySelector("#round-status");
 const ytStatus = document.querySelector("#yt-status");
 const log = document.querySelector("#log");
+const testModeCard = document.querySelector("#test-mode");
+const testNote = document.querySelector("#test-note");
 
 tokenInput.value = sessionStorage.getItem("hostToken") || "";
 
@@ -75,10 +77,14 @@ function render(state) {
   const answer = state.answer ? `正解は ${state.answer}` : `${state.length}文字 / 残り ${state.maxGuesses - state.rows.length} 回`;
   roundStatus.textContent = `${state.phase} ・ ${answer}`;
   const yt = state.youtube;
-  if (!yt) return;
-  ytStatus.textContent = yt.running
-    ? `接続中 ${yt.videoId} / 新しい発言 ${yt.seen} 件`
-    : yt.error || "チャット未接続";
+  testModeCard.classList.toggle("active", Boolean(state.testMode?.enabled));
+  if (state.testMode?.enabled) {
+    ytStatus.textContent = "テストモード中。YouTube配信なしでチャットを再現しています";
+  } else if (yt?.running) {
+    ytStatus.textContent = `接続中 ${yt.videoId} / 新しい発言 ${yt.seen} 件`;
+  } else if (yt) {
+    ytStatus.textContent = yt.error || "チャット未接続";
+  }
   log.replaceChildren();
   for (const event of state.log || []) {
     const item = document.createElement("li");
@@ -117,6 +123,43 @@ document.querySelector("#disconnect").addEventListener("click", async () => {
   errorBox.textContent = "";
   try {
     render(await post("/api/youtube/stop"));
+  } catch (error) {
+    showError(error);
+  }
+});
+
+document.querySelector("#test-start").addEventListener("click", async () => {
+  errorBox.textContent = "";
+  try {
+    render(await post("/api/test/start"));
+    testNote.textContent = "視聴者名とチャットを入れて、配信中と同じルールで送れます。";
+  } catch (error) {
+    showError(error);
+  }
+});
+
+document.querySelector("#test-stop").addEventListener("click", async () => {
+  errorBox.textContent = "";
+  try {
+    render(await post("/api/test/stop"));
+    testNote.textContent = "テストモードを終了しました。";
+  } catch (error) {
+    showError(error);
+  }
+});
+
+document.querySelector("#chat-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  errorBox.textContent = "";
+  try {
+    const state = await post("/api/test/chat", {
+      author: document.querySelector("#chat-author").value,
+      text: document.querySelector("#chat-text").value,
+      moderator: document.querySelector("#chat-mod").checked,
+    });
+    render(state);
+    testNote.textContent = state.notice || "";
+    document.querySelector("#chat-text").value = "";
   } catch (error) {
     showError(error);
   }

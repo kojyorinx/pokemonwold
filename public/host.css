@@ -109,6 +109,19 @@ button.ghost {
 
 .overlay-box { margin-top: 8px; }
 
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 12px;
+}
+
+.check input { width: auto; }
+
+#test-mode.active {
+  border-color: rgba(47, 158, 107, 0.8);
+}
+
 .error {
   min-height: 1.2em;
   color: var(--danger);
